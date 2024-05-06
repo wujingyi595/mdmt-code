@@ -32,7 +32,6 @@ import re
 # 初始化基本信任分配 用于D-S
 def initialize_mass_function(confidence):
     return {
-
         'target': confidence,
         'not_target': 1 - confidence,
         'uncertain': 0.0  # 如果有不确定性，可以适当调整
@@ -53,6 +52,18 @@ def combine_mass_functions(m1, m2):
         if total_mass > 0:
             combined_m[key] /= total_mass  # 重新归一化以考虑冲突
     return combined_m, conflict
+
+def delet_same_id(ids1_list, ids2_list):
+    new_ids1=[]
+    new_ids2=[]
+    for ss in range(ids1_list.shape[0]):
+        if (ids1_list[ss] not in ids2_list):
+            new_ids1.append(ids1_list[ss])
+    for kop in range(ids2_list.shape[0]):
+        if (ids2_list[kop] not in ids1_list):
+            new_ids2.append(ids2_list[kop])
+    return np.array(new_ids1), np.array(new_ids2)
+
 
 
 def main():
@@ -254,42 +265,52 @@ def main():
             conflicts = []
             image11 = image1.copy()
             image22 = image2.copy()
+            track_bboxes111 = track_bboxes.copy()
+            track_bboxes222 = track_bboxes2.copy()
             threshold = 0.2
             os.makedirs('./imagetrackbox/' + str(dirrr), exist_ok=True)
+            boxes1 = torch.tensor(track_bboxes[:, 1:5], dtype=torch.long)
+            boxes2 = torch.tensor(track_bboxes2[:, 1:5], dtype=torch.long)
+            ids1_list = track_bboxes[:, 0]
+            ids2_list = track_bboxes2[:, 0]
+            new_ids1, new_ids2 = delet_same_id(ids1_list, ids2_list)
             for ss in range(track_bboxes.shape[0]):
                 for kop in range(track_bboxes2.shape[0]):
-                    if track_bboxes[ss,0]==track_bboxes2[kop, 0]:
-
-                        boxes1 = torch.tensor(track_bboxes[:, 1:5], dtype=torch.long)
-                        boxes2 = torch.tensor(track_bboxes2[:, 1:5], dtype=torch.long)
+                    if track_bboxes[ss,0] == track_bboxes2[kop, 0]:
                         m1 = initialize_mass_function(track_bboxes[ss, -1])
                         m2 = initialize_mass_function(track_bboxes2[kop, -1])
                         combined_m, conflict = combine_mass_functions(m1, m2)
                         if (combined_m['target'] > threshold):
-                            track_bboxes[ss, -1]=combined_m['target']
-                            track_bboxes2[kop, -1]=combined_m['target']
+                            track_bboxes[ss, -1] = combined_m['target']
+                            track_bboxes2[kop, -1] = combined_m['target']
                             x1, y1, x2, y2 = boxes1[ss].numpy()
                             cv2.rectangle(image11, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                            cv2.putText(image11, str(combined_m['target'])[0:6], (x1 + 30, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                            cv2.putText(image11, str(combined_m['target'])[0:6], (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                                         (255, 0, 0), 2)
                             # cv2.putText(image11, str(track_bboxes[ss,0]), (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                            # cv2.imwrite("./imagetrackbox/{}/boxesA2-{}.jpg".format(dirrr, i), image11)
-
+                            
                             x1, y1, x2, y2 = boxes2[kop].numpy()
                             cv2.rectangle(image22, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                            cv2.putText(image22, str(combined_m['target'])[0:6], (x1 + 30, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                            cv2.putText(image22, str(combined_m['target'])[0:6], (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                                         (255, 0, 0), 2)
                             # cv2.putText(image22, str(track_bboxes[ss,0]), (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                        # cv2.imwrite("./imagetrackbox/{}/boxesA2-{}.jpg".format(dirrr, i), image11)
+                    
+                        # results.append(combined_m)
+                        # conflicts.append(conflict)
 
-                        results.append(combined_m)
-                        conflicts.append(conflict)
+            for ss in range(track_bboxes.shape[0]):
+                if track_bboxes[ss, 0] in new_ids1:
+                    x1, y1, x2, y2 = boxes1[ss].numpy()
+                    cv2.rectangle(image11, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(image11, str(track_bboxes[ss, -1])[0:6], (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            for kop in range(track_bboxes2.shape[0]):
+                if track_bboxes2[kop,0] in new_ids2:
+                    x1, y1, x2, y2 =  boxes2[kop].numpy()
+                    cv2.rectangle(image22, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(image22, str(track_bboxes2[kop, -1])[0:6], (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
-            # print("kkkkkkkkkkkkkkkkkkkk", conflicts)
-            # print("mmmmmmmmmmmmmmmmmmmmm", results)
 
-            track_bboxes111 = track_bboxes
-            track_bboxes222 = track_bboxes2
+
             # print("bbbbbbbbbbbbbbbbbbbbbbbb", track_bboxes111)
             # print("ccccccccccccccccccccccccc", track_bboxes)
             #####################################################################
