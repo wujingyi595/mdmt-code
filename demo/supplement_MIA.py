@@ -1,9 +1,4 @@
-# _*_ coding: utf-8 _*_
-# @Time    :2022/7/12 16:38
-# @Author  :LiuZhihao
-# @File    :supplement.py
-
-# Copyright (c) OpenMMLab. All rights reserved.
+# =================把D-S应用到跟踪上=============================
 import os
 import os.path as osp
 import tempfile
@@ -233,13 +228,13 @@ def main():
             det_bboxes = result['det_bboxes'][0]
             track_bboxes = result['track_bboxes'][0]
             # print("lllllllllllllll",det_bboxes)
-            print("lllllllllllllllffffffffffffffffff", track_bboxes)
+            # print("lllllllllllllllffffffffffffffffff", track_bboxes)
             result2, max_id = inference_mot(model2, img2, frame_id=i, bboxes1=bboxes2, ids1=ids2, labels1=labels2,
                                             max_id=max_id)
             det_bboxes2 = result2['det_bboxes'][0]
             track_bboxes2 = result2['track_bboxes'][0]
 
-            print("oooooooooooooooooooooooooooooooooo",track_bboxes2)
+            # print("oooooooooooooooooooooooooooooooooo",track_bboxes2)
             ############NMS##########################NMS##########################NMS##########
             # thresh = 0.3
             # # print(len(track_bboxes))
@@ -247,22 +242,9 @@ def main():
             # # print("2", track_bboxes)
             # track_bboxes2 = all_nms(track_bboxes2, thresh)
             # #############NMS##########################NMS##########################NMS##########
-            # 遍历两组检测数据并融合信任分配
+
             # results = []
             # conflicts = []
-            # for i in range(detection_data1.shape[0]):
-            #    m1 = initialize_mass_function(detection_data1[i, -1])
-            #    m2 = initialize_mass_function(detection_data2[i, -1])
-            #    combined_m, conflict = combine_mass_functions(m1, m2)
-            #    results.append(combined_m)
-            #   conflicts.append(conflict)
-            #track_bboxes, track_bboxes2 = get_matched_trackboxes(track_bboxes, track_bboxes2)
-            #print("trace_bboxes", track_bboxes)
-            #print("track_bboxes2", track_bboxes2)
-            #track_bboxes = np.array(track_bboxes)
-            #track_bboxes2 = np.array(track_bboxes2)
-            results = []
-            conflicts = []
             image11 = image1.copy()
             image22 = image2.copy()
             track_bboxes111 = track_bboxes.copy()
@@ -309,18 +291,15 @@ def main():
                     cv2.rectangle(image22, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.putText(image22, str(track_bboxes2[kop, -1])[0:6], (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
-
-
             # print("bbbbbbbbbbbbbbbbbbbbbbbb", track_bboxes111)
             # print("ccccccccccccccccccccccccc", track_bboxes)
+
+
             #####################################################################
             bboxes11 = torch.tensor(track_bboxes111[:, 1:5], dtype=torch.long)
-            # print("xxxxxxxxxxxxxxxxxxxxxxxx", bboxes11)
             conf1 = track_bboxes111[:, -1]
             image111 = image1.copy()
 
-
-            # print("qqqqqqqqqqqqqqqqqqqqqqqqqqq", conf1)
             for bbox, conf in zip(bboxes11.numpy(), conf1):
                 x1, y1, x2, y2 = bbox[0:4]
                 if (conf > threshold):
@@ -337,10 +316,7 @@ def main():
 
             bboxes22 = torch.tensor(track_bboxes222[:, 1:5], dtype=torch.long)
             conf2 = track_bboxes222[:, -1]
-            # numbers2 = re.findall(r'[\d\.\-]+', conf2)
             image222 = image2.copy()
-            # 将提取的字符串数字转换为浮点数
-            # conf2 = [float(num) for num in numbers2]
 
             for bbox, conf in zip(bboxes22.numpy(), conf2):
                 x1, y1, x2, y2 = bbox
@@ -351,13 +327,12 @@ def main():
             os.makedirs('./imagetrackbox/' + str(dirrr), exist_ok=True)
             cv2.imwrite("./imagetrackbox/{}/boxesB-{}.jpg".format(dirrr, i), concatenated_image1)
 
-            print('wjyok')
-            # cv2.imwrite("./imagetrackbox/{}/boxesB-{}.jpg".format(dirrr,i), image2)
+            # print('wjyok')
 
             track_bboxes, track_bboxes2 = get_chosed_track(track_bboxes, track_bboxes2, 0.2)
 
-            print("gggggggggggggggggggggggggggggggggg", track_bboxes)
-            print("track_bboxes2", track_bboxes2)
+            # print("gggggggggggggggggggggggggggggggggg", track_bboxes)
+            # print("track_bboxes2", track_bboxes2)
 
             #track_bboxes = np.array(track_bboxes)
             #track_bboxes2 = np.array(track_bboxes2)
@@ -372,7 +347,7 @@ def main():
             #                                                             det_bboxes2)  # cent_allclass:ndarray n*2
 
             # '''
-            # 计算追踪目标中心点，进而计算两机间变换矩阵   计算检测中心点
+            # 计算追踪目标中心点，进而计算两机间变换矩阵
             cent_allclass, corner_allclass = calculate_cent_corner_pst(image1,
                                                                        track_bboxes)  # corner_allclass:ndarray 2n*2        #calculate_cent_corner_pst有更改
             cent_allclass2, corner_allclass2 = calculate_cent_corner_pst(image2,

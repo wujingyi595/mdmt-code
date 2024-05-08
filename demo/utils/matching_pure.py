@@ -57,7 +57,7 @@ def normalize_keypoints(keypoints, image_shape):
 
 def parse_arguments():
     args = {
-        'descriptor': "SIFT",  # 更改匹配算法
+        'descriptor': "SuperPoint+Boost-B",  # 更改匹配算法
         'gpu_id': '0',
     }
 
@@ -105,7 +105,7 @@ def create_sift(leftImage, rightImage):
         with open(str(config_file), 'r') as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
         # 假设我们想要打印config中对应'descriptor'的配置，如果不存在则返回'Not Found'
-       # print(config.get(args['descriptor'], 'Not Found'))
+        # print(config.get(args['descriptor'], 'Not Found'))
 
         # print(config[args['descriptor']])
 
@@ -222,6 +222,9 @@ def create_sift(leftImage, rightImage):
         if "superpoint" in args['descriptor'].lower():
             kp11=kp1
             kp22=kp2
+        elif "alike" in args['descriptor'].lower():
+            kp11 = kp1
+            kp22 = kp2
         print((type(kp1)))
         kp11 = normalize_keypoints(kp11, leftImage.shape)
         kp22 = normalize_keypoints(kp22, rightImage.shape)
@@ -367,10 +370,18 @@ def create_sift(leftImage, rightImage):
     #kp2 = [cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=1) for kp in kp2]
 
     print(type(kp1))
-    kp1 = tuple([cv2.KeyPoint(x=kp.pt[0], y=kp.pt[1], size=1) for kp in kp1])
+    if "sift" in args['descriptor'].lower():
+        kp1 = tuple([cv2.KeyPoint(x=kp.pt[0], y=kp.pt[1], size=1) for kp in kp1])
 
-    # kp2 = kp2.cpu().numpy()
-    kp2 = tuple([cv2.KeyPoint(x=kp.pt[0], y=kp.pt[1], size=1) for kp in kp2])
+        # kp2 = kp2.cpu().numpy()
+        kp2 = tuple([cv2.KeyPoint(x=kp.pt[0], y=kp.pt[1], size=1) for kp in kp2])
+    elif 'superpoint' in args['descriptor'].lower():
+        kp1 =[cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=20) for kp in kp1]
+        kp2 =[cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=20) for kp in kp2]
+    elif 'alike' in args['descriptor'].lower():
+        kp1 =[cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=20) for kp in kp1]
+        kp2 =[cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=20) for kp in kp2]
+    
     # kp1 = out1.cpu().detach().numpy()
     # kp2 = out2.cpu().detach().numpy()
     # kp1, des1 = sift.detectAndCompute(leftImage, None)
@@ -437,7 +448,7 @@ def compute_matrics(matches, kp1, kp2):
     train_matched = []
     for m, n in matches:
         # print("11111111111111111111111111111",m.distance,n.distance)
-        if m.distance < 0.7 * n.distance:
+        if m.distance < 0.8 * n.distance:
 
             if m.queryIdx not in query_matched and m.trainIdx not in train_matched:
                 query_matched.append(m.queryIdx)

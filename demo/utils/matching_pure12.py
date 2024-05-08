@@ -62,6 +62,313 @@ def create_sift(leftImage, rightImage):
     #         matchesMask[i] = [1, 0]
     return kp1, kp2, matches, matchesMask
 
+def create_sift1(leftImage, rightImage):
+    # 创造sift
+    # sift = cv2.xfeatures2d.SIFT_create()
+    # sift = cv2.SIFT_create()
+
+    args = parse_arguments()
+    os.environ['CUDA_VISIBLE_DEVICES'] = args['gpu_id']
+    use_cuda = torch.cuda.is_available()
+
+    # set torch grad
+    torch.set_grad_enabled(False)
+
+    # feature_extractor = Dog(descriptor='sift')#可以更改
+    # feature_extractor = Dog(descriptor=args.descriptor.lower())
+    if args['descriptor'].lower() in ['sift', 'rootsift', 'sosnet', 'hardnet']:
+        feature_extractor = Dog(descriptor=args['descriptor'].lower())
+    elif 'sift' in args['descriptor'].lower():
+        feature_extractor = Dog(descriptor='sift')
+    elif 'orb' in args['descriptor'].lower():
+        feature_extractor = ORBextractor(3000, 1.2, 8)
+    elif 'superpoint' in args['descriptor'].lower():
+        sp_weights_path = Path(__file__).parent / "extractors/SuperPointPretrainedNetwork/superpoint_v1.pth"
+        feature_extractor = SuperPointFrontend(weights_path=sp_weights_path, nms_dist=4, conf_thresh=0.015,
+                                               nn_thresh=0.7, cuda=use_cuda)
+    elif 'alike' in args['descriptor'].lower():
+        feature_extractor = ALike(**alike.configs['alike-l'], device='cuda' if use_cuda else 'cpu', top_k=-1,
+                                  scores_th=0.2)
+    else:
+        raise Exception('Not supported descriptor: "%s".' % args['descriptor'])
+
+    # load json config file
+    if "+Boost-" in args['descriptor']:
+        # load json config file
+        # print("1111111111111")
+        config_file = Path(__file__).parent / "config.yaml"
+        with open(str(config_file), 'r') as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+        # 假设我们想要打印config中对应'descriptor'的配置，如果不存在则返回'Not Found'
+        print(config.get(args['descriptor'], 'Not Found'))
+
+        # print(config[args['descriptor']])
+
+        # Model
+        feature_booster = FeatureBooster(config.get(args['descriptor']))
+        if use_cuda:
+            feature_booster.cuda()
+        feature_booster.eval()
+        # load the model
+        model_path = Path(__file__).parent / str("models/" + args['descriptor'] + ".pth")
+        print(model_path)
+        feature_booster.load_state_dict(torch.load(model_path))
+
+    # print("111111111")
+
+    if 'alike' in args['descriptor'].lower():
+        rgb1 = cv2.cvtColor(leftImage, cv2.COLOR_BGR2RGB)
+        rgb2 = cv2.cvtColor(rightImage, cv2.COLOR_BGR2RGB)
+
+        pred1 = feature_extractor(rgb1, sub_pixel=True)
+        pred2 = feature_extractor(rgb2, sub_pixel=True)
+
+        kp1 = pred1['keypoints']
+        kp2 = pred2['keypoints']
+        des1 = pred1['descriptors']
+        des2 = pred2['descriptors']
+
+        scores1 = pred1['scores']
+        scores2 = pred2['scores']
+
+        kp1 = np.hstack((kp1, np.expand_dims(scores1, 1)))
+        kp2 = np.hstack((kp2, np.expand_dims(scores2, 1)))
+
+    else:
+        leftImage = cv2.cvtColor(leftImage, cv2.COLOR_BGR2GRAY)
+        rightImage = cv2.cvtColor(rightImage, cv2.COLOR_BGR2GRAY)
+
+        if 'superpoint' in args['descriptor'].lower():
+            leftImage = (leftImage.astype('float32') / 255.)
+            rightImage = (rightImage.astype('float32') / 255.)
+
+            kp1, des1, _ = feature_extractor.run(leftImage)
+            kp2, des2, _ = feature_extractor.run(rightImage)
+
+            kp1, des1 = kp1.T, des1.T
+            kp2, des2 = kp2.T, des2.T
+
+        elif args['descriptor'].lower() in ['sift', 'rootsift', 'sosnet', 'hardnet']:
+            leftImage = (leftImage.astype('float32') / 255.)
+            rightImage = (rightImage.astype('float32') / 255.)
+
+            kp1, scores1, des1 = feature_extractor.detectAndCompute(leftImage)
+            kp2, scores2, des2 = feature_extractor.detectAndCompute(rightImage)
+
+            kp1 = np.hstack((kp1, np.expand_dims(scores1, 1)))
+            kp2 = np.hstack((kp2, np.expand_dims(scores2, 1)))
+
+        elif 'sift' in args['descriptor'].lower():
+            leftImage = (leftImage.astype('float32') / 255.)
+            rightImage = (rightImage.astype('float32') / 255.)
+
+            kp1, scores1, des1 = feature_extractor.detectAndCompute(leftImage)
+            kp2, scores2, des2 = feature_extractor.detectAndCompute(rightImage)
+
+        elif 'orb' in args['descriptor'].lower():
+            kps_tuples1, des1 = feature_extractor.detectAndCompute(leftImage)
+            kps_tuples2, des2 = feature_extractor.detectAndCompute(rightImage)
+            # print(type(des1))
+
+            # des1 = des1.astype(np.float32)
+            # des2 = des2.astype(np.float32)
+            # print(type(des1))
+
+            # convert keypoints
+            kp1 = [cv2.KeyPoint(*kp) for kp in kps_tuples1]
+            kp2 = [cv2.KeyPoint(*kp) for kp in kps_tuples2]
+
+            kp1 = np.array(
+                [[kp.pt[0], kp.pt[1], kp.size / 31, np.deg2rad(kp.angle)] for kp in kp1],
+                dtype=np.float32
+            )
+            kp2 = np.array(
+                [[kp.pt[0], kp.pt[1], kp.size / 31, np.deg2rad(kp.angle)] for kp in kp2],
+                dtype=np.float32
+            )
+
+    if "+Boost-" in args['descriptor']:
+        # boosted the descriptor using trained model
+        kp1 = normalize_keypoints(kp1, leftImage.shape)
+        kp2 = normalize_keypoints(kp2, rightImage.shape)
+
+        kp1 = torch.from_numpy(kp1.astype(np.float32))
+        kp2 = torch.from_numpy(kp2.astype(np.float32))
+
+        if 'orb' in args['descriptor'].lower():
+            des1 = np.unpackbits(des1, axis=1, bitorder='little')
+            des2 = np.unpackbits(des2, axis=1, bitorder='little')
+
+            des1 = des1 * 2.0 - 1.0
+            des2 = des2 * 2.0 - 1.0
+
+        des1 = torch.from_numpy(des1.astype(np.float32))
+        des2 = torch.from_numpy(des2.astype(np.float32))
+
+        if use_cuda:
+            kp1 = kp1.cuda()
+
+            kp2 = kp2.cuda()
+
+            des1 = des1.cuda()
+
+            des2 = des2.cuda()
+
+        out1 = feature_booster(des1, kp1)
+        # print("out1", out1)
+        # print(des1.shape, des2.shape, kp1.shape, kp2.shape)
+        out2 = feature_booster(des2, kp2)
+        kp1 = kp1.cpu().numpy()
+        kp2 = kp2.cpu().numpy()
+        # print("12334523245432", out1)
+
+        # out2 = feature_booster(des2, kp2)
+        if 'boost-b' in args['descriptor'].lower():
+            out1 = (out1 >= 0).cpu().detach().numpy()
+            out2 = (out2 >= 0).cpu().detach().numpy()
+
+            des1 = np.packbits(out1, axis=1, bitorder='little')
+            des2 = np.packbits(out2, axis=1, bitorder='little')
+
+            des1 = des1.astype(np.float32)
+            des2 = des2.astype(np.float32)
+
+        else:
+            # des1= out.cpu().detach().numpy()
+            des1 = out1.cpu().detach().numpy()
+
+            des2 = out2.cpu().detach().numpy()
+
+    if 'orb' in args['descriptor'].lower():
+        des1 = des1.astype(np.float32)
+        des2 = des2.astype(np.float32)
+
+        ##视情况更改
+    # leftImage = cv2.cvtColor(leftImage, cv2.COLOR_BGR2GRAY)
+    # rightImage= cv2.cvtColor(rightImage, cv2.COLOR_BGR2GRAY)
+
+    # leftImage = (leftImage.astype('float32') / 255.)
+    #  rightImage = (rightImage.astype('float32') / 255.)
+
+    # keypoints1, scores1, des1 = feature_extractor.detectAndCompute(leftImage)
+    # keypoints2, scores2, des2 = feature_extractor.detectAndCompute(rightImage)
+    #
+    # contains_nan = np.isnan(des1).any()
+    #  print("popopopopo", "NaN_in_des1", contains_nan )
+
+    # contains_nan = np.isnan(des2).any()
+    # print("popopopopo", "NaN_in_des2", contains_nan )
+
+    # kp1 = normalize_keypoints(keypoints1, leftImage.shape)
+    # kp2 = normalize_keypoints(keypoints2, rightImage.shape)
+
+    # print("12345", "des1", des1)
+    # print("12345", "des2", des2)
+
+    # kp1 = torch.from_numpy(kp1.astype(np.float32))
+    # des1 = torch.from_numpy(des1.astype(np.float32))
+    #
+    # kp2 = normalize_keypoints(keypoints2, rightImage.shape)
+    # kp2 = torch.from_numpy(kp2.astype(np.float32))
+    # des2 = torch.from_numpy(des2.astype(np.float32))
+
+    # contains_nan = torch.isnan(des1).any()
+    # print("Contains NaN:", contains_nan)
+    #  print("hhhhhhhhhhhhhhh", "Contains NaN:", contains_nan)
+
+    # contains_nan = torch.isnan(des2).any()
+    # print("Contains NaN:", contains_nan)
+    # print("hhhhhhhhhhhhhhh", "Contains NaN:", contains_nan)
+    # print("67890", "des1", des1)
+    # print("67890", "des2", des2)
+    # print("000000000000000000000000000000000000",kp1,'\n',des1)
+    # print("000000000000000000000000000000000000",kp2,'\n',des2)
+    #  if use_cuda:
+    #      kp1 = kp1.cuda()
+
+    #     kp2 = kp2.cuda()
+
+    #     des1 = des1.cuda()
+
+    #    des2 = des2.cuda()
+
+    #  contains_nan = torch.isnan(des1).any()
+    # print("Contains NaN:", contains_nan)
+    #  print("hhhhhhhhhhhhhhh", "Contains NaN:", contains_nan)
+
+    #  contains_nan = torch.isnan(des2).any()
+    # print("Contains NaN:", contains_nan)
+    # print("hhhhhhhhhhhhhhh", "Contains NaN:", contains_nan)
+
+    # print("mmmmn", des1)
+
+    # print("mmmmn", des2)
+
+    # out1 = feature_booster(des1, kp1)
+
+    # print("12334523245432", out1)
+
+    # out2 = feature_booster(des2, kp2)
+
+    # print("kkkskksksks",out2)
+
+    # print("kkkkd", out1)
+    # print("kkkkd", out2)
+
+    # des1 = out1.cpu().detach().numpy()
+
+    # des2 = out2.cpu().detach().numpy()
+
+    # print("14749", "des1", des1)
+    # print("14749", "des2", des2)
+
+    # kp1 = kp1.cpu().numpy()
+    kp1 = tuple([cv2.KeyPoint(x=kp[0], y=kp[1], size=1) for kp in kp1])
+    # kp2 = kp2.cpu().numpy()
+    kp2 = tuple([cv2.KeyPoint(x=kp[0], y=kp[1], size=1) for kp in kp2])
+    # kp1 = out1.cpu().detach().numpy()
+    # kp2 = out2.cpu().detach().numpy()
+    # kp1, des1 = sift.detectAndCompute(leftImage, None)
+    # kp2, des2 = sift.detectAndCompute(rightImage, None)  # 返回关键点信息和描述符
+    # print("000000000000000000000000000000000000", type(kp1[4].pt),kp1[4].pt)   # type(kp1[4].pt) ------<class 'tuple'>
+    # print(type(kp2), type(des2),des2)
+
+    # # Convert the training image to RGB
+    # training_image = cv2.cvtColor(leftImage, cv2.COLOR_BGR2RGB)
+    # # Convert the query image to RGB
+    # query_image = cv2.cvtColor(rightImage, cv2.COLOR_BGR2RGB)
+    #
+    # # Convert the training image to gray scale
+    # training_gray = cv2.cvtColor(training_image, cv2.COLOR_BGR2GRAY)
+    # # Convert the query image to gray scale
+    # query_gray = cv2.cvtColor(query_image, cv2.COLOR_BGR2GRAY)
+    #
+    # orb = cv2.ORB_create(200, 2.0)
+    # # Find the keypoints in the gray scale training image and compute their ORB descriptor.
+    # # The None parameter is needed to indicate that we are not using a mask.
+    # kp1, des1 = orb.detectAndCompute(training_gray, None)
+    # kp2, des2 = orb.detectAndCompute(query_gray, None)
+    #
+    # print("des1", des1)
+    # print("des2", des2)
+    FLANN_INDEX_KDTREE = 1
+    indexParams = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    searchParams = dict(checks=50)  # 指定索引树要被遍历的次数
+
+    # bf = cv2.BFMatcher()
+    # matches = bf.knnMatch(des1, des2, k=2)
+    flann = cv2.FlannBasedMatcher(indexParams, searchParams)
+    matches = flann.knnMatch(des1, des2, k=2)  # 得到的matches成对存在，分别为匹配的前两名，每一个包含（distance, queryIdx(下标）, trainIdx（下标）等属性）
+    matchesMask = [[0, 0] for i in range(len(matches))]
+    # print("matches", matches[0])
+    # for i, (m, n) in enumerate(matches):
+    #     # if m.distance < 0.07 * n.distance:
+    #     if m.distance < 0.7 * n.distance:  # 在多机多目标数据集上0.6会出现误识别，此参数可调！
+    #         matchesMask[i] = [1, 0]
+    # des1 = out1.cpu().detach().numpy()
+    # des2 = out2.cpu().detach().numpy()
+    # print("000000000000000000000000000000000000\n", matches,'\n ',len(matches), matchesMask)   # type(kp1[4].pt) ------<class 'tuple'>
+    return kp1, kp2, matches, matchesMask
 
 def compute_matrics(matches, kp1, kp2):
     MIN_MATCH_COUNT = 10

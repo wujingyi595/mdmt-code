@@ -98,6 +98,7 @@ class BaseMultiObjectTracker(BaseModule, metaclass=ABCMeta):
         for var, name in [(imgs, 'imgs'), (img_metas, 'img_metas')]:
             if not isinstance(var, list):
                 raise TypeError(f'{name} must be a list, but got {type(var)}')
+        print('xxxx', len(imgs))
 
         num_augs = len(imgs)
         if num_augs != len(img_metas):

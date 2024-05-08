@@ -265,6 +265,8 @@ class CocoVideoDataset(CocoDataset):
             results = [
                 self.prepare_results(img_info) for img_info in img_infos
             ]
+            # print('wjywjy', len(results))
+            # ret = [self.pipeline(res) for res in results]
         else:
             results = self.prepare_results(img_info)
         return self.pipeline(results)

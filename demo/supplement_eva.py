@@ -518,7 +518,7 @@ def main():
     json_files_dirs = os.listdir(input_dir)
 
     for file in json_files_dirs:
-        print(file)
+        # print(file)
         if "txt" in file or "ipynb" in file:
             continue
         # if file not in ["26-1.json", "26-2.json"]:
@@ -540,7 +540,7 @@ def main():
                 for (key, values) in load_json.items():
                     for value in values:
                         maxID = max(maxID, value[0])
-                        print(maxID)
+                        # print(maxID)
                 while n <= maxID:
                     for (key, values) in load_json.items():
                         # print(key)
@@ -566,7 +566,7 @@ def main():
                         #     f_txt.write(string_line)
                     n += 1
 
-    print("hello")
+    # print("hello")
 
     # parser = ArgumentParser()
     # parser.add_argument('--test_file_dir', default="./demo/txt/MOT/Firstframe_initialized_faster_rcnn_r50_fpn_carafe_1x_full_mdmt/", help="test file directory")
@@ -646,8 +646,8 @@ def main():
     Amota = 2 * Amota / nn
     Bmota = 2 * Bmota / nn
 
-    print(idf11_averagee)
-    print(mota_averagee)
+    print('idf11_averagee:', idf11_averagee)
+    print('mota_averagee:', mota_averagee)
     print("A idf1:", Aidf1)
     print("B idf1:", Bidf1)
     print("A mota:", Amota)

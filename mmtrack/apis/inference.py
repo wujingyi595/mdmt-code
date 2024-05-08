@@ -553,7 +553,7 @@ def init_model(config,
     
     if isinstance(config, str):
         config = mmcv.Config.fromfile(config)
-        # print('kxkx',config)
+        print('kxkx',config)
     elif not isinstance(config, mmcv.Config):
         raise TypeError('config must be a filename or Config object, '
                         f'but got {type(config)}')

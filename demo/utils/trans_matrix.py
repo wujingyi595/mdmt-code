@@ -37,16 +37,16 @@ def supp_compute_transf_matrix(pts_src, pts_dst, f_last, image11, image22, dirrr
         #     f = f_last.copy()
     else:
         M = matching(image11, image22, dirrr, i, 1)
-        print("xianshi",M,type(M))
+        # print("xianshi",M,type(M))
         M2 = matching(image11, image22, dirrr, i, 2)
-        print("xianshi",M2,type(M2))
+        # print("xianshi",M2,type(M2))
         M3 = matching(image11, image22, dirrr, i, 3)
-        print("xianshi",M3,type(M3))
+        # print("xianshi",M3,type(M3))
         cosine_sim = M.reshape(1, -1).dot(f_last.reshape(1, -1).T) / (
                 np.linalg.norm(M.reshape(1, -1)) * np.linalg.norm(f_last.reshape(1, -1)))
         print("cosine_sim", cosine_sim)
         if cosine_sim[0] > 0.99:  # 0.97就大不一样了
-            print('using global matching:')
+            # print('using global matching:')
             f = M
             f_last = f.copy()
         else:

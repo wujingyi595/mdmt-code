@@ -10,13 +10,13 @@ samples_per_gpu = 4
 model = dict(
     type='ByteTrack',
     detector=dict(
-        # pretrained='checkpoints/epoch_12.pth',
-        init_cfg=dict(
-            type='Pretrained',
-            checkpoint=  # noqa: E251
-            # 'https://download.openmmlab.com/mmdetection/v2.0/yolox/yolox_x_8x8_300e_coco/yolox_x_8x8_300e_coco_20211126_140254-1ef88d67.pth'  # noqa: E501
-           'checkpoint/autoassign_r50_fpn_8x2_1x_full_mdmt/epoch_60.pth'  # noqa: E501
-        )
+        pretrained='checkpoint/autoassign_r50_fpn_8x2_1x_full_mdmt/epoch_60.pth', # 'checkpoints/epoch_12.pth',
+        # init_cfg=dict(
+        #     type='Pretrained',
+        #     checkpoint=  # noqa: E251
+        #     # 'https://download.openmmlab.com/mmdetection/v2.0/yolox/yolox_x_8x8_300e_coco/yolox_x_8x8_300e_coco_20211126_140254-1ef88d67.pth'  # noqa: E501
+        #    'checkpoint/autoassign_r50_fpn_8x2_1x_full_mdmt/epoch_60.pth'  # noqa: E501
+        # )
 
         ),
     motion=dict(type='KalmanFilter'),

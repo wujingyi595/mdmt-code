@@ -45,9 +45,9 @@ test_pipeline = [
             dict(type='VideoCollect', keys=['img'])
         ])
 ]
-data_root = 'data/FULL_MDMT/'
+data_root = '/home/wjy/wujingyi/Dataset/MDMTchallenge/'
 data = dict(
-    samples_per_gpu=2,
+    samples_per_gpu=4,
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,

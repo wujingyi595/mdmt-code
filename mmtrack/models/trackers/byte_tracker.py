@@ -1155,8 +1155,8 @@ class ByteTracker(BaseTracker):
         """
         if not hasattr(self, 'kf'):
             self.kf = model.motion
-            print('obj_score_thrs',self.obj_score_thrs)
-            print('match_iou_thrs',self.match_iou_thrs)
+            # print('obj_score_thrs',self.obj_score_thrs)
+            # print('match_iou_thrs',self.match_iou_thrs)
 
 
         if self.empty or bboxes.size(0) == 0:
@@ -1186,7 +1186,7 @@ class ByteTracker(BaseTracker):
 
             # get the detection bboxes for the first association
             first_det_inds = bboxes[:, -1] > self.obj_score_thrs['high']
-            print('bboxes[:, -1]',bboxes[:, -1])
+            # print('bboxes[:, -1]',bboxes[:, -1])
             
             first_det_bboxes = bboxes[first_det_inds]
             first_det_labels = labels[first_det_inds]
