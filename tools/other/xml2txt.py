@@ -6,9 +6,9 @@ import sys
 import xml.etree.ElementTree as ET
 
 # VOC格式的文件的存放路径
-path_voc = '../Dataset/MDMTchallenge/new_xml'
+path_voc = '/home/wjy/wujingyi/Dataset/MDMT/new_xml'
 # Yolo格式的标注文件目标路径
-path_yolo ='../Dataset/MDMTchallenge/gt_true'
+path_yolo ='/home/wjy/wujingyi/Dataset/MDMT/gt_true'
 # 类名文件的路径
 path_class_name ='garbage.names'
 
@@ -21,7 +21,7 @@ for fname in src_fname_list:
 		xml_fname_list.append(fname)
 print(xml_fname_list)
 
-category = {'car':0, 'bus':1, 'person':2, 'bicycle':3}
+category = {'car':3, 'bus':2, 'person':1, 'bicycle':4}    #MOT中 2: 'person on vehicle'
 
 for xml_fname in xml_fname_list:
 	
@@ -41,7 +41,7 @@ for xml_fname in xml_fname_list:
         shape = [1080, 1920]
         for box in boxes:
             # print(box.attrib['frame'])
-            frame = int(box.attrib['frame'])
+            frame = int(box.attrib['frame'])+1
             xtl = int(box.attrib['xtl'])
             ytl = int(box.attrib['ytl'])
             xbr = int(box.attrib['xbr'])

@@ -38,8 +38,8 @@ import mmcv
 import numpy as np
 from tqdm import tqdm
 
-USELESS = [3, 4, 5, 6, 9, 10, 11]
-IGNORES = [2, 7, 8, 12, 13]
+USELESS = [ 5, 6, 9, 10, 11]
+IGNORES = [ 7, 8, 12, 13]
 
 
 def parse_args():
@@ -78,7 +78,7 @@ def parse_gts(gts, is_mot15):
         elif class_id in IGNORES:
             continue
         anns = dict(
-            category_id=1,
+            category_id=class_id,
             bbox=bbox,
             area=bbox[2] * bbox[3],
             iscrowd=False,
@@ -111,7 +111,7 @@ def main():
     if not osp.isdir(args.output):
         os.makedirs(args.output)
 
-    sets = ['train', 'test']
+    sets = ['train', 'test', 'val']
     if args.split_train:
         sets += ['half-train', 'half-val']
     vid_id, img_id, ann_id = 1, 1, 1
@@ -125,17 +125,19 @@ def main():
             in_folder = osp.join(args.input, subset)
         out_file = osp.join(args.output, f'{subset}_cocoformat.json')
         outputs = defaultdict(list)
-        outputs['categories'] = [dict(id=1, name='pedestrian')]
+        outputs['categories'] = [dict(id=3, name='car'), dict(id=1, name='person'), dict(id=2, name='bus'), dict(id=4, name='bicycle')]
         if args.convert_det:
             det_file = osp.join(args.output, f'{subset}_detections.pkl')
             detections = dict(det_bboxes=dict())
         video_names = os.listdir(in_folder)
         for video_name in tqdm(video_names):
+            # print(video_name)
             # basic params
             parse_gt = 'test' not in subset
             ins_maps = dict()
             # load video infos
             video_folder = osp.join(in_folder, video_name)
+            # print(video_folder)
             infos = mmcv.list_from_file(f'{video_folder}/seqinfo.ini')
             # video-level infos
             assert video_name == infos[1].strip().split('=')[1]
@@ -144,6 +146,7 @@ def main():
             img_names = sorted(img_names)
             fps = int(infos[3].strip().split('=')[1])
             num_imgs = int(infos[4].strip().split('=')[1])
+        
             assert num_imgs == len(img_names)
             width = int(infos[5].strip().split('=')[1])
             height = int(infos[6].strip().split('=')[1])
@@ -155,6 +158,7 @@ def main():
                 height=height)
             # parse annotations
             if parse_gt:
+                # print('1',parse_gt)
                 gts = mmcv.list_from_file(f'{video_folder}/gt/gt.txt')
                 if 'MOT15' in video_folder:
                     img2gts = parse_gts(gts, True)

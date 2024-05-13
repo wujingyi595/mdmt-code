@@ -1,0 +1,8 @@
+python tools/other/xml2txt.py
+python tools/other/datamove.py  # train test val
+将train,test,val中所有视频文件移到当前目录，删除/1/ /2/
+python tools/other/makeseqinfo.py  # train test val
+python tools/other/imgrename.py  # train test val
+
+python ./tools/convert_datasets/mot/mot2coco.py -i ../Dataset/MOT17challenge/ -o ../Dataset/MOT17challenge/annotations
+python tools/train.py configs/mot/bytetrack/one_carafe_bytetrack_full_mdmt.py
