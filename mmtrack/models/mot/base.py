@@ -98,12 +98,17 @@ class BaseMultiObjectTracker(BaseModule, metaclass=ABCMeta):
         for var, name in [(imgs, 'imgs'), (img_metas, 'img_metas')]:
             if not isinstance(var, list):
                 raise TypeError(f'{name} must be a list, but got {type(var)}')
-        print('xxxx', len(imgs))
+        # print('xxxx', len(imgs))
 
         num_augs = len(imgs)
         if num_augs != len(img_metas):
             raise ValueError(f'num of augmentations ({len(imgs)}) '
                              f'!= num of image meta ({len(img_metas)})')
+                             
+        for img, img_meta in zip(imgs, img_metas):
+            batch_size = len(img_meta)
+            for img_id in range(batch_size):
+                img_meta[img_id]['batch_input_shape'] = tuple(img.size()[-2:])
 
         if num_augs == 1:
             # proposals (List[List[Tensor]]): the outer list indicates

@@ -44,7 +44,7 @@ model = dict(
             type='Pretrained',
             checkpoint=  # noqa: E251
             # 'https://download.openmmlab.com/mmdetection/v2.0/yolox/yolox_x_8x8_300e_coco/yolox_x_8x8_300e_coco_20211126_140254-1ef88d67.pth'  # noqa: E501
-           './checkpoint/faster_rcnn_r50_fpn_carafe_1x_full_mdmt/epoch_12.pth'  # noqa: E501
+           '../mydev/home/wjy/checkpoints/faster_rcnn_r50_fpn_carafe_1x_full_mdmt/epoch_12.pth'  # noqa: E501
         )
 
         ),

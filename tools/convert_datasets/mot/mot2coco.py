@@ -111,7 +111,7 @@ def main():
     if not osp.isdir(args.output):
         os.makedirs(args.output)
 
-    sets = ['train', 'test', 'val']
+    sets = ['train', 'val']
     if args.split_train:
         sets += ['half-train', 'half-val']
     vid_id, img_id, ann_id = 1, 1, 1
@@ -125,7 +125,8 @@ def main():
             in_folder = osp.join(args.input, subset)
         out_file = osp.join(args.output, f'{subset}_cocoformat.json')
         outputs = defaultdict(list)
-        outputs['categories'] = [dict(id=3, name='car'), dict(id=1, name='person'), dict(id=2, name='bus'), dict(id=4, name='bicycle')]
+        # outputs['categories'] = [dict(id=3, name='car'), dict(id=1, name='person'), dict(id=2, name='bus'), dict(id=4, name='bicycle')]
+        outputs['categories'] = [dict(id=1, name='person'), dict(id=2, name='bus'), dict(id=3, name='car'), dict(id=4, name='bicycle')]
         if args.convert_det:
             det_file = osp.join(args.output, f'{subset}_detections.pkl')
             detections = dict(det_bboxes=dict())
@@ -133,7 +134,8 @@ def main():
         for video_name in tqdm(video_names):
             # print(video_name)
             # basic params
-            parse_gt = 'test' not in subset
+            # parse_gt = 'test' not in subset
+            parse_gt = True
             ins_maps = dict()
             # load video infos
             video_folder = osp.join(in_folder, video_name)

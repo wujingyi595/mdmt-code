@@ -31,9 +31,10 @@ from featurebooster import FeatureBooster
 import sys
 from pathlib import Path
 
-orb_path = Path(__file__).parent / "extractors/orbslam2_features/lib"
-sys.path.append(str(orb_path))
-from orbslam2_features import ORBextractor
+# orb_path = Path(__file__).parent / "extractors/orbslam2_features/lib"
+# print(orb_path)
+# sys.path.append(str(orb_path))
+# from orbslam2_features import ORBextractor
 
 superpoint_path = Path(__file__).parent / "extractors/SuperPointPretrainedNetwork"
 sys.path.append(str(superpoint_path))

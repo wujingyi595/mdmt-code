@@ -8,7 +8,7 @@ def rename_images(folder_path):
 
     image_files = sorted(os.listdir(img_folder))
     print(image_files)
-    for i, filename in enumerate(image_files, start=1):
+    for i, filename in enumerate(image_files, start=2):
         old_file_path = os.path.join(img_folder, filename)
         new_filename = f"{i:08d}.jpg"
         new_file_path = os.path.join(img_folder, new_filename)
@@ -16,7 +16,7 @@ def rename_images(folder_path):
         print(f"Renamed {old_file_path} to {new_file_path}")
 
 # 指定要遍历的目录路径
-dataset_path = "/home/wjy/wujingyi/Dataset/MOT17challenge/val"
+dataset_path = "../mydev/home/wjy/MDMTcross/train"
 
 # 遍历目录中的所有文件夹
 for root, dirs, files in os.walk(dataset_path):
